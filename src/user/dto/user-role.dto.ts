@@ -3,7 +3,7 @@ import {IsEmail, IsEnum} from 'class-validator';
 
 export enum UserRole {
   ADMIN = 'Admin',
-  SECRETARA = 'Secretara',
+  SECRETARY = 'Secretary',
   STUDENT = 'Student',
 }
 
@@ -16,14 +16,14 @@ export class UserRoleDTO {
   email: string;
 
   @ApiProperty({
-    example: 'Student',
+    example: 'Admin',
     enum: UserRole,
     required: true,
     description: 'The role must be one of the defined user roles',
   })
   @IsEnum(UserRole, {
     message:
-      'Role must be one of the defined user roles: Admin, Secretara, or Student',
+      'Role must be one of the defined user roles: Admin, Secretary, or Student',
   })
   role: UserRole;
 }

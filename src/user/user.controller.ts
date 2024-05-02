@@ -10,6 +10,7 @@ import {
   UsePipes,
   ValidationPipe,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import {UserService} from './user.service';
 import {ApiTags} from '@nestjs/swagger';
@@ -35,14 +36,14 @@ export class UserController {
   }
 
   //@UseGuards(JwtAuthGuard)
-  @Post('role')
+  @Post('add-role')
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({whitelist: true, forbidNonWhitelisted: true}))
-  async updateUserRoles(@Body() userRoleDto: UserRoleDTO): Promise<any> {
+  async updateUserRoles(@Body() body: UserRoleDTO): Promise<any> {
     try {
       const updatedUser = await this.userService.addUserRole(
-        userRoleDto.email,
-        userRoleDto.role,
+        body.email,
+        body.role,
       );
       return {
         status: 'success',
@@ -54,6 +55,22 @@ export class UserController {
         throw new ConflictException(error.message);
       }
       throw new NotFoundException(error.message);
+    }
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetUserPassword(@Body() body: UserDTO): Promise<void> {
+    try {
+      await this.userService.resetPassword(body.email, body.password);
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException('Error processing your request');
     }
   }
 }

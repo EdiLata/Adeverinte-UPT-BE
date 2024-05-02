@@ -1,4 +1,8 @@
-import {Injectable, NotFoundException} from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
 import {Repository} from 'typeorm';
 import {User} from './entities/user.entity';
@@ -121,5 +125,23 @@ export class UserService {
     } else {
       return {status: 400, content: {msg: 'Invalid content'}};
     }
+  }
+
+  async resetPassword(email: string, newPassword: string): Promise<void> {
+    const user = await this.usersRepository.findOne({where: {email}});
+
+    if (!user) {
+      throw new NotFoundException(`No user found with the email ${email}`);
+    }
+
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      throw new BadRequestException(
+        'New password cannot be the same as the old password.',
+      );
+    }
+
+    user.password = bcrypt.hashSync(newPassword, 10);
+    await this.usersRepository.save(user);
   }
 }
