@@ -1,5 +1,12 @@
 import {Entity, Column, PrimaryGeneratedColumn, ManyToOne} from 'typeorm';
 import {Template} from './template.entity';
+import {User} from '../../user/entities/user.entity';
+
+export enum ResponseStatus {
+  SENT = 'Trimis',
+  APPROVED = 'Aprobat',
+  DECLINED = 'Respins',
+}
 
 @Entity()
 export class StudentResponse {
@@ -9,8 +16,8 @@ export class StudentResponse {
   @ManyToOne(() => Template)
   template: Template;
 
-  @Column()
-  studentId: number;
+  @ManyToOne(() => User)
+  student: User;
 
   @Column('json')
   responses: any;
@@ -19,4 +26,17 @@ export class StudentResponse {
     nullable: true,
   })
   filePath: string;
+
+  @Column({
+    type: 'enum',
+    enum: ResponseStatus,
+    default: ResponseStatus.SENT,
+  })
+  status: ResponseStatus;
+
+  @Column({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
+  responseDate: Date;
 }

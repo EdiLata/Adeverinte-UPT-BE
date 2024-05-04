@@ -1,5 +1,12 @@
-import {IsString, IsNotEmpty, IsArray, ArrayNotEmpty} from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsArray,
+  ArrayNotEmpty,
+  IsEnum,
+} from 'class-validator';
 import {ApiProperty} from '@nestjs/swagger';
+import {Specialization} from '../entities/template.entity';
 
 export class CreateTemplateDto {
   @ApiProperty({example: 'Annual Report', description: 'Name of the template'})
@@ -15,4 +22,14 @@ export class CreateTemplateDto {
   @ArrayNotEmpty()
   @IsString({each: true})
   fields: string[];
+
+  @ApiProperty({
+    example: [Specialization.CTI_RO, Specialization.CTI_ENG],
+    description: 'Specializations that can use the template',
+    isArray: true,
+    enum: Specialization,
+  })
+  @IsArray()
+  @IsEnum(Specialization, {each: true})
+  specializations: Specialization[];
 }

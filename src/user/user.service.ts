@@ -71,8 +71,9 @@ export class UserService {
           status: 200,
           msg: {
             access_token: this.jwtService.sign({
+              id: userDetails.id,
               email: user.email,
-              roles: await this.getUserRolesByEmail(user.email),
+              roles: userDetails.roles,
             }),
           },
         };
@@ -82,18 +83,6 @@ export class UserService {
     } else {
       return {status: 400, msg: {msg: 'Invalid fields.'}};
     }
-  }
-
-  async getUserRolesByEmail(email: string): Promise<UserRole[]> {
-    const user = await this.usersRepository.findOne({
-      where: {email: email},
-    });
-
-    if (!user) {
-      throw new NotFoundException(`User with email ${email} not found`);
-    }
-
-    return user.roles;
   }
 
   async createUser(body: UserDTO): Promise<Record<string, any>> {

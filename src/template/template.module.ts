@@ -5,13 +5,32 @@ import {TemplatesService} from './template.service';
 import {Template} from './entities/template.entity';
 import {Field} from './entities/field.entity';
 import {StudentResponse} from './entities/student-response.entity';
+import {UserModule} from '../user/user.module';
+import {UserService} from '../user/user.service';
+import {User} from '../user/entities/user.entity';
+import {PassportModule} from '@nestjs/passport';
+import {LoggerModule} from '../logger/logger.module';
+import {JwtModule} from '@nestjs/jwt';
+import * as fs from 'fs';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Template, Field, StudentResponse]), // Register entities with TypeORM
+    UserModule,
+    PassportModule,
+    LoggerModule,
+    JwtModule.registerAsync({
+      useFactory: () => {
+        return {
+          privateKey: fs.readFileSync('keys/private-key.pem', 'utf8'),
+          publicKey: fs.readFileSync('keys/public-key.pem', 'utf8'),
+          signOptions: {expiresIn: '30m', algorithm: 'RS256'},
+        };
+      },
+    }),
+    TypeOrmModule.forFeature([Template, Field, StudentResponse, User]),
   ],
-  controllers: [TemplatesController], // Register controllers
-  providers: [TemplatesService], // Register services
-  exports: [TemplatesService], // Export the service if it will be used elsewhere
+  controllers: [TemplatesController],
+  providers: [TemplatesService, UserService],
+  exports: [TemplatesService],
 })
 export class TemplateModule {}

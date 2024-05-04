@@ -1,15 +1,20 @@
-import {Injectable} from '@nestjs/common';
+import {Injectable, NotFoundException} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
 import {Repository} from 'typeorm';
-import {Template} from './entities/template.entity';
+import {Specialization, Template} from './entities/template.entity';
 import {Field} from './entities/field.entity';
-import {StudentResponse} from './entities/student-response.entity';
+import {
+  ResponseStatus,
+  StudentResponse,
+} from './entities/student-response.entity';
 import {CreateTemplateDto} from './dto/create-template.dto';
 import {CreateResponseDto} from './dto/create-response.dto';
-import * as PizZip from 'pizzip';
+import PizZip from 'pizzip';
 import * as Docxtemplater from 'docxtemplater';
 import * as fs from 'fs';
 import * as path from 'path';
+import {User} from '../user/entities/user.entity';
+import {ChangeStatusDto} from './dto/change-status.dto';
 
 @Injectable()
 export class TemplatesService {
@@ -20,6 +25,8 @@ export class TemplatesService {
     private fieldRepository: Repository<Field>,
     @InjectRepository(StudentResponse)
     private responseRepository: Repository<StudentResponse>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
   ) {}
 
   async createTemplate(
@@ -35,7 +42,9 @@ export class TemplatesService {
 
     const template = new Template();
     template.name = createTemplateDto.name;
+    template.specializations = createTemplateDto.specializations;
     template.filePath = file.path;
+    template.createDate = new Date();
 
     await this.templateRepository.save(template);
 
@@ -58,18 +67,41 @@ export class TemplatesService {
     });
   }
 
-  async fillTemplate(
-    templateId: number,
-    data: CreateResponseDto,
-  ): Promise<string> {
+  async updateTemplate(
+    id: number,
+    updateData: Partial<Template>,
+  ): Promise<Template> {
+    const template = await this.templateRepository.findOne({where: {id: id}});
+    if (!template) {
+      throw new NotFoundException(`Template with ID ${id} not found`);
+    }
+    Object.assign(template, updateData);
+    template.updateDate = new Date();
+    return this.templateRepository.save(template);
+  }
+
+  async deleteTemplate(id: number): Promise<void> {
+    const result = await this.templateRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(`Template with ID ${id} not found`);
+    }
+  }
+
+  async fillTemplate(data: CreateResponseDto): Promise<string> {
     const template = await this.templateRepository.findOne({
-      where: {id: templateId},
+      where: {id: data.templateId},
     });
     if (!template) {
       throw new Error('Template not found');
     }
 
-    // Load the docx file as binary content
+    const student = await this.userRepository.findOne({
+      where: {id: data.studentId},
+    });
+    if (!student) {
+      throw new Error('Student not found');
+    }
+
     const content = fs.readFileSync(
       path.resolve(__dirname, '../../', template.filePath),
       'binary',
@@ -95,11 +127,79 @@ export class TemplatesService {
 
     const response = new StudentResponse();
     response.template = template;
-    response.studentId = data.studentId;
+    response.student = student;
     response.responses = data.responses;
     response.filePath = outputPath;
+    response.status = ResponseStatus.SENT;
+    response.responseDate = new Date();
     await this.responseRepository.save(response);
 
     return outputPath;
+  }
+
+  async findTemplatesBySpecialization(
+    specialization: Specialization,
+  ): Promise<Template[]> {
+    return this.templateRepository
+      .createQueryBuilder('template')
+      .where(':specialization = ANY(template.specializations)', {
+        specialization,
+      })
+      .getMany();
+  }
+
+  async findResponsesByStudentId(
+    studentId: number,
+  ): Promise<StudentResponse[]> {
+    return await this.responseRepository.find({
+      where: {
+        student: {id: studentId},
+      },
+      relations: ['template', 'student'],
+      select: [
+        'id',
+        'responses',
+        'status',
+        'responseDate',
+        'filePath',
+        'template',
+      ],
+    });
+  }
+
+  async findAllResponsesWithUserDetails(
+    status?: ResponseStatus,
+  ): Promise<any[]> {
+    let query = this.responseRepository
+      .createQueryBuilder('response')
+      .leftJoinAndSelect('response.template', 'template')
+      .leftJoinAndSelect('response.student', 'user');
+
+    if (status) {
+      query = query.where('response.status = :status', {status});
+    }
+
+    return await query.getMany();
+  }
+
+  async findAllTemplates(): Promise<Template[]> {
+    return await this.templateRepository.find();
+  }
+
+  async updateResponseStatus(
+    responseId: number,
+    newStatus: ChangeStatusDto,
+  ): Promise<StudentResponse> {
+    const response = await this.responseRepository.findOne({
+      where: {id: responseId},
+    });
+    if (!response) {
+      throw new NotFoundException(
+        `Student response with ID ${responseId} not found`,
+      );
+    }
+
+    response.status = newStatus.status;
+    return this.responseRepository.save(response);
   }
 }
