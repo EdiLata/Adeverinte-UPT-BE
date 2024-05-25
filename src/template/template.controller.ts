@@ -13,6 +13,7 @@ import {
   Query,
   Patch,
   ParseIntPipe,
+  BadRequestException,
 } from '@nestjs/common';
 import {FileInterceptor} from '@nestjs/platform-express';
 import {TemplatesService} from './template.service';
@@ -139,21 +140,40 @@ export class TemplatesController {
 
   @Get()
   @ApiQuery({
-    name: 'specialization',
-    enum: Specialization,
+    name: 'specializations',
     required: false,
-    description: 'Optional specialization to filter the templates',
+    description: 'Optional specializations to filter the templates',
+    isArray: true,
+    example: [Specialization.CTI_RO, Specialization.CTI_ENG],
+    enum: [
+      Specialization.CTI_RO,
+      Specialization.CTI_ENG,
+      Specialization.ETC_ENG,
+      Specialization.ETC_RO,
+      Specialization.IS,
+      Specialization.INFO,
+    ],
   })
-  async getTemplatesBySpecialization(
-    @Query('specialization') specialization?: Specialization,
+  async getTemplates(
+    @Query('specializations') specializations?: Specialization[],
   ): Promise<Template[]> {
-    if (specialization) {
-      return await this.templatesService.findTemplatesBySpecialization(
-        specialization,
-      );
-    } else {
-      return await this.templatesService.findAllTemplates();
+    let parsedSpecializations: Specialization[];
+
+    if (specializations) {
+      parsedSpecializations = Array.isArray(specializations)
+        ? specializations
+        : [specializations];
+
+      parsedSpecializations.forEach((specialization) => {
+        if (!Object.values(Specialization).includes(specialization)) {
+          throw new BadRequestException(
+            `Invalid specialization: ${specialization}`,
+          );
+        }
+      });
     }
+
+    return this.templatesService.findTemplates(parsedSpecializations);
   }
 
   @Get('student-responses/:studentId')

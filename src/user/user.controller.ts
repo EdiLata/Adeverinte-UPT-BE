@@ -13,10 +13,10 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import {UserService} from './user.service';
-import {ApiTags} from '@nestjs/swagger';
+import {ApiBearerAuth, ApiTags} from '@nestjs/swagger';
 import {JwtAuthGuard} from './strategy/jwt-auth.guard';
-import {UserDTO} from './dto/user.dto';
-import {UserRoleDTO} from './dto/user-role.dto';
+import {UserDto} from './dto/user.dto';
+import {UserRoleDto} from './dto/user-role.dto';
 
 @ApiTags('Authentication')
 @Controller('authentication')
@@ -24,22 +24,23 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post('login')
-  async login(@Res() res, @Body() body: UserDTO) {
+  async login(@Res() res, @Body() body: UserDto) {
     const auth = await this.userService.login(body);
     res.status(auth.status).json(auth.msg);
   }
 
   @Post('register')
-  async register(@Res() res, @Body() body: UserDTO) {
+  async register(@Res() res, @Body() body: UserDto) {
     const auth = await this.userService.createUser(body);
     res.status(auth.status).json(auth.content);
   }
 
-  //@UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @Post('add-role')
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({whitelist: true, forbidNonWhitelisted: true}))
-  async updateUserRoles(@Body() body: UserRoleDTO): Promise<any> {
+  async updateUserRoles(@Body() body: UserRoleDto): Promise<any> {
     try {
       const updatedUser = await this.userService.addUserRole(
         body.email,
@@ -60,7 +61,7 @@ export class UserController {
 
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
-  async resetUserPassword(@Body() body: UserDTO): Promise<void> {
+  async resetUserPassword(@Body() body: UserDto): Promise<void> {
     try {
       await this.userService.resetPassword(body.email, body.password);
     } catch (error) {

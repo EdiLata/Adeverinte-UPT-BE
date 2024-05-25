@@ -7,7 +7,7 @@ export enum UserRole {
   STUDENT = 'Student',
 }
 
-export class UserRoleDTO {
+export class UserRoleDto {
   @ApiProperty({
     example: 'eduard.lata@student.upt.ro',
     required: true,

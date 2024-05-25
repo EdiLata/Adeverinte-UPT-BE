@@ -6,7 +6,7 @@ import {
 import {InjectRepository} from '@nestjs/typeorm';
 import {Repository} from 'typeorm';
 import {User} from './entities/user.entity';
-import {UserDTO} from './dto/user.dto';
+import {UserDto} from './dto/user.dto';
 import {validate} from 'class-validator';
 import {JwtService} from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -40,14 +40,14 @@ export class UserService {
     return user;
   }
 
-  async login(user: UserDTO): Promise<Record<string, any>> {
+  async login(user: UserDto): Promise<Record<string, any>> {
     let isOk = false;
 
-    const userDTO = new UserDTO();
-    userDTO.email = user.email;
-    userDTO.password = user.password;
+    const userDto = new UserDto();
+    userDto.email = user.email;
+    userDto.password = user.password;
 
-    await validate(userDTO).then((errors) => {
+    await validate(userDto).then((errors) => {
       if (errors.length > 0) {
         this.logger.debug(`${errors}`, UserService.name);
       } else {
@@ -85,14 +85,14 @@ export class UserService {
     }
   }
 
-  async createUser(body: UserDTO): Promise<Record<string, any>> {
+  async createUser(body: UserDto): Promise<Record<string, any>> {
     let isOk = false;
 
-    const userDTO = new UserDTO();
-    userDTO.email = body.email;
-    userDTO.password = bcrypt.hashSync(body.password, 10);
+    const userDto = new UserDto();
+    userDto.email = body.email;
+    userDto.password = bcrypt.hashSync(body.password, 10);
 
-    await validate(userDTO).then((errors) => {
+    await validate(userDto).then((errors) => {
       if (errors.length > 0) {
         this.logger.debug(`${errors}`, UserService.name);
       } else {
@@ -100,12 +100,12 @@ export class UserService {
       }
     });
     if (isOk) {
-      await this.usersRepository.save(userDTO).catch((error) => {
+      await this.usersRepository.save(userDto).catch((error) => {
         this.logger.debug(error.message, UserService.name);
         isOk = false;
       });
 
-      await this.addUserRole(userDTO.email, UserRole.STUDENT);
+      await this.addUserRole(userDto.email, UserRole.STUDENT);
       if (isOk) {
         return {status: 201, content: {msg: `User created with success`}};
       } else {

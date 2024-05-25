@@ -137,15 +137,18 @@ export class TemplatesService {
     return outputPath;
   }
 
-  async findTemplatesBySpecialization(
-    specialization: Specialization,
-  ): Promise<Template[]> {
-    return this.templateRepository
-      .createQueryBuilder('template')
-      .where(':specialization = ANY(template.specializations)', {
-        specialization,
-      })
-      .getMany();
+  async findTemplates(specializations?: Specialization[]): Promise<Template[]> {
+    if (specializations && specializations.length > 0) {
+      return this.templateRepository
+        .createQueryBuilder('template')
+        .where(
+          'template.specializations && ARRAY[:...specializations]::template_specializations_enum[]',
+          {specializations},
+        )
+        .getMany();
+    } else {
+      return this.templateRepository.find();
+    }
   }
 
   async findResponsesByStudentId(
@@ -180,10 +183,6 @@ export class TemplatesService {
     }
 
     return await query.getMany();
-  }
-
-  async findAllTemplates(): Promise<Template[]> {
-    return await this.templateRepository.find();
   }
 
   async updateResponseStatus(
