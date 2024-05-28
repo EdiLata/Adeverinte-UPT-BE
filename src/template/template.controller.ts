@@ -41,6 +41,14 @@ import {ChangeStatusDto} from './dto/change-status.dto';
 export class TemplatesController {
   constructor(private readonly templatesService: TemplatesService) {}
 
+  @Get('get-doc-html/:filename')
+  async getDocHtml(
+    @Param('filename') filename: string,
+  ): Promise<{html: string}> {
+    const html = await this.templatesService.convertDocToHtml(filename);
+    return {html};
+  }
+
   @Post('upload')
   @UseInterceptors(FileInterceptor('file', multerConfig))
   @ApiConsumes('multipart/form-data')

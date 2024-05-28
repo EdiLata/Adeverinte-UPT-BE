@@ -15,6 +15,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {User} from '../user/entities/user.entity';
 import {ChangeStatusDto} from './dto/change-status.dto';
+import * as mammoth from 'mammoth';
 
 @Injectable()
 export class TemplatesService {
@@ -81,7 +82,20 @@ export class TemplatesService {
   }
 
   async deleteTemplate(id: number): Promise<void> {
+    const template = await this.templateRepository.findOne({
+      where: {id},
+    });
+
+    if (!template) {
+      throw new NotFoundException(`Template with ID ${id} not found`);
+    }
+
+    await this.fieldRepository.delete({template: {id}});
+
+    await this.responseRepository.delete({template: {id}});
+
     const result = await this.templateRepository.delete(id);
+
     if (result.affected === 0) {
       throw new NotFoundException(`Template with ID ${id} not found`);
     }
@@ -200,5 +214,12 @@ export class TemplatesService {
 
     response.status = newStatus.status;
     return this.responseRepository.save(response);
+  }
+
+  async convertDocToHtml(filename: string): Promise<string> {
+    const filePath = path.join(__dirname, '..', '..', 'uploads', `${filename}`);
+    const buffer = fs.readFileSync(filePath);
+    const result = await mammoth.convertToHtml({buffer: buffer});
+    return result.value;
   }
 }

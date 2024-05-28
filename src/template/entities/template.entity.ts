@@ -21,7 +21,10 @@ export class Template {
   @Column()
   filePath: string;
 
-  @OneToMany(() => Field, (field) => field.template)
+  @OneToMany(() => Field, (field) => field.template, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   fields: Field[];
 
   @Column({

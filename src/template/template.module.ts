@@ -12,9 +12,15 @@ import {PassportModule} from '@nestjs/passport';
 import {LoggerModule} from '../logger/logger.module';
 import {JwtModule} from '@nestjs/jwt';
 import * as fs from 'fs';
+import {ServeStaticModule} from '@nestjs/serve-static';
+import {join} from 'path';
 
 @Module({
   imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', '..', 'uploads'),
+      serveRoot: '/uploads',
+    }),
     UserModule,
     PassportModule,
     LoggerModule,
