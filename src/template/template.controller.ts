@@ -258,6 +258,11 @@ export class TemplatesController {
     return responses;
   }
 
+  @Get('fields/:templateId')
+  async getFieldsByTemplateId(@Param('templateId') templateId: number) {
+    return this.templatesService.findFieldsByTemplateId(templateId);
+  }
+
   @Get('student-responses/with-user-details/all')
   @ApiQuery({
     name: 'status',

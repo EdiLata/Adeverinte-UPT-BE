@@ -192,19 +192,17 @@ export class TemplatesService {
   async findResponsesByStudentId(
     studentId: number,
   ): Promise<StudentResponse[]> {
-    return await this.responseRepository.find({
-      where: {
-        student: {id: studentId},
-      },
-      relations: ['template', 'student'],
-      select: [
-        'id',
-        'responses',
-        'status',
-        'responseDate',
-        'filePath',
-        'template',
-      ],
+    return await this.responseRepository
+      .createQueryBuilder('studentResponse')
+      .leftJoinAndSelect('studentResponse.template', 'template')
+      .leftJoinAndSelect('studentResponse.student', 'student')
+      .where('student.id = :studentId', {studentId})
+      .getMany();
+  }
+
+  async findFieldsByTemplateId(templateId: number): Promise<Field[]> {
+    return this.fieldRepository.find({
+      where: {template: {id: templateId}},
     });
   }
 
