@@ -29,12 +29,13 @@ import {
 import {multerConfig} from '../multer.config';
 import * as path from 'path';
 import {Response} from 'express';
-import {Specialization, Template} from './entities/template.entity';
+import {Template} from './entities/template.entity';
 import {
   ResponseStatus,
   StudentResponse,
 } from './entities/student-response.entity';
 import {ChangeStatusDto} from './dto/change-status.dto';
+import {Specialization} from '../shared/spec.enum';
 
 @ApiTags('Templates')
 @Controller('templates')
@@ -117,12 +118,71 @@ export class TemplatesController {
   }
 
   @Put(':id')
-  @ApiBody({description: 'Payload to update a template', type: Template})
+  @UseInterceptors(FileInterceptor('file', multerConfig))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'File to upload',
+        },
+        name: {
+          type: 'string',
+          example: 'Updated Annual Report',
+          description: 'Name of the template',
+          nullable: true,
+        },
+        fields: {
+          type: 'array',
+          items: {type: 'string'},
+          example: ['Name', 'Date', 'Signature'],
+          description: 'List of fields in the template',
+          nullable: true,
+        },
+        specializations: {
+          type: 'array',
+          items: {
+            enum: [
+              Specialization.CTI_RO,
+              Specialization.CTI_ENG,
+              Specialization.ETC_ENG,
+              Specialization.ETC_RO,
+              Specialization.IS,
+              Specialization.INFO,
+            ],
+          },
+          example: [Specialization.CTI_RO, Specialization.CTI_ENG],
+          description: 'Specializations that can use the template',
+          nullable: true,
+        },
+      },
+    },
+    description: 'Payload to update a template',
+  })
   async updateTemplate(
     @Param('id') id: number,
+    @UploadedFile() file: Express.Multer.File,
     @Body() updateData: Partial<Template>,
   ) {
-    return await this.templatesService.updateTemplate(id, updateData);
+    if (updateData.fields && typeof updateData.fields === 'string') {
+      updateData.fields = (updateData.fields as string)
+        .split(',')
+        .map((field) => field.trim() as any);
+    }
+
+    if (
+      updateData.specializations &&
+      typeof updateData.specializations === 'string'
+    ) {
+      updateData.specializations = (updateData.specializations as string)
+        .split(',')
+        .map((field: string) => field.trim() as Specialization);
+    }
+
+    return await this.templatesService.updateTemplate(id, updateData, file);
   }
 
   @Delete(':id')

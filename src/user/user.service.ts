@@ -6,12 +6,13 @@ import {
 import {InjectRepository} from '@nestjs/typeorm';
 import {Repository} from 'typeorm';
 import {User} from './entities/user.entity';
-import {UserDto} from './dto/user.dto';
+import {UserLoginDto} from './dto/user-login.dto';
 import {validate} from 'class-validator';
 import {JwtService} from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import {LoggerService} from '../logger/logger.service';
 import {UserRole} from './dto/user-role.dto';
+import {UserRegisterDto} from './dto/user-register.dto';
 
 @Injectable()
 export class UserService {
@@ -21,7 +22,7 @@ export class UserService {
     @InjectRepository(User) private usersRepository: Repository<User>,
   ) {}
 
-  async addUserRole(email: string, newRole: UserRole): Promise<User> {
+  async updateUserRole(email: string, newRole: UserRole): Promise<User> {
     const user = await this.usersRepository.findOne({
       where: {email},
     });
@@ -30,8 +31,8 @@ export class UserService {
       throw new NotFoundException(`User with email ${email} not found`);
     }
 
-    if (!user.roles.includes(newRole)) {
-      user.roles.push(newRole);
+    if (user.role !== newRole) {
+      user.role = newRole;
       await this.usersRepository.save(user);
     } else {
       throw new Error(`Role '${newRole}' already exists for this user.`);
@@ -40,10 +41,10 @@ export class UserService {
     return user;
   }
 
-  async login(user: UserDto): Promise<Record<string, any>> {
+  async login(user: UserLoginDto): Promise<Record<string, any>> {
     let isOk = false;
 
-    const userDto = new UserDto();
+    const userDto = new UserLoginDto();
     userDto.email = user.email;
     userDto.password = user.password;
 
@@ -73,7 +74,7 @@ export class UserService {
             access_token: this.jwtService.sign({
               id: userDetails.id,
               email: user.email,
-              roles: userDetails.roles,
+              role: userDetails.role,
             }),
           },
         };
@@ -85,11 +86,14 @@ export class UserService {
     }
   }
 
-  async createUser(body: UserDto): Promise<Record<string, any>> {
+  async createUser(body: UserRegisterDto): Promise<Record<string, any>> {
     let isOk = false;
 
-    const userDto = new UserDto();
+    const userDto = new UserRegisterDto();
     userDto.email = body.email;
+    userDto.faculty = body.faculty;
+    userDto.specialization = body.specialization;
+    userDto.year = body.year;
     userDto.password = bcrypt.hashSync(body.password, 10);
 
     await validate(userDto).then((errors) => {
@@ -105,7 +109,7 @@ export class UserService {
         isOk = false;
       });
 
-      await this.addUserRole(userDto.email, UserRole.STUDENT);
+      await this.updateUserRole(userDto.email, UserRole.STUDENT);
       if (isOk) {
         return {status: 201, content: {msg: `User created with success`}};
       } else {

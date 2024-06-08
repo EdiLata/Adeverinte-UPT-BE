@@ -1,7 +1,7 @@
 import {Injectable, NotFoundException} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
 import {Repository} from 'typeorm';
-import {Specialization, Template} from './entities/template.entity';
+import {Template} from './entities/template.entity';
 import {Field} from './entities/field.entity';
 import {
   ResponseStatus,
@@ -16,6 +16,7 @@ import * as path from 'path';
 import {User} from '../user/entities/user.entity';
 import {ChangeStatusDto} from './dto/change-status.dto';
 import * as mammoth from 'mammoth';
+import {Specialization} from '../shared/spec.enum';
 
 @Injectable()
 export class TemplatesService {
@@ -71,12 +72,35 @@ export class TemplatesService {
   async updateTemplate(
     id: number,
     updateData: Partial<Template>,
+    file?: Express.Multer.File,
   ): Promise<Template> {
     const template = await this.templateRepository.findOne({where: {id: id}});
     if (!template) {
       throw new NotFoundException(`Template with ID ${id} not found`);
     }
-    Object.assign(template, updateData);
+
+    if (file) {
+      template.filePath = file.path;
+    }
+
+    if (updateData.name) {
+      template.name = updateData.name;
+    }
+
+    if (updateData.specializations) {
+      template.specializations = updateData.specializations;
+    }
+
+    if (updateData.fields) {
+      await this.fieldRepository.delete({template: {id}});
+      for (const fieldName of updateData.fields) {
+        const field = new Field();
+        field.fieldName = fieldName as any;
+        field.template = template;
+        await this.fieldRepository.save(field);
+      }
+    }
+
     template.updateDate = new Date();
     return this.templateRepository.save(template);
   }

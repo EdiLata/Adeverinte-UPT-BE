@@ -6,7 +6,7 @@ import {
   IsEnum,
 } from 'class-validator';
 import {ApiProperty} from '@nestjs/swagger';
-import {Specialization} from '../entities/template.entity';
+import {Specialization} from '../../shared/spec.enum';
 
 export class CreateTemplateDto {
   @ApiProperty({example: 'Annual Report', description: 'Name of the template'})

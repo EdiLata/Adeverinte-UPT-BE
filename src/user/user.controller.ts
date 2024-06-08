@@ -15,8 +15,9 @@ import {
 import {UserService} from './user.service';
 import {ApiBearerAuth, ApiTags} from '@nestjs/swagger';
 import {JwtAuthGuard} from './strategy/jwt-auth.guard';
-import {UserDto} from './dto/user.dto';
+import {UserLoginDto} from './dto/user-login.dto';
 import {UserRoleDto} from './dto/user-role.dto';
+import {UserRegisterDto} from './dto/user-register.dto';
 
 @ApiTags('Authentication')
 @Controller('authentication')
@@ -24,25 +25,25 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post('login')
-  async login(@Res() res, @Body() body: UserDto) {
+  async login(@Res() res, @Body() body: UserLoginDto) {
     const auth = await this.userService.login(body);
     res.status(auth.status).json(auth.msg);
   }
 
   @Post('register')
-  async register(@Res() res, @Body() body: UserDto) {
+  async register(@Res() res, @Body() body: UserRegisterDto) {
     const auth = await this.userService.createUser(body);
     res.status(auth.status).json(auth.content);
   }
 
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
-  @Post('add-role')
+  @Post('change-role')
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({whitelist: true, forbidNonWhitelisted: true}))
   async updateUserRoles(@Body() body: UserRoleDto): Promise<any> {
     try {
-      const updatedUser = await this.userService.addUserRole(
+      const updatedUser = await this.userService.updateUserRole(
         body.email,
         body.role,
       );
@@ -61,7 +62,7 @@ export class UserController {
 
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
-  async resetUserPassword(@Body() body: UserDto): Promise<void> {
+  async resetUserPassword(@Body() body: UserLoginDto): Promise<void> {
     try {
       await this.userService.resetPassword(body.email, body.password);
     } catch (error) {
