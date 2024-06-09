@@ -112,6 +112,44 @@ export class TemplatesController {
     return this.templatesService.createTemplate(file, createTemplateDto);
   }
 
+  @Get()
+  @ApiQuery({
+    name: 'specializations',
+    required: false,
+    description: 'Optional specializations to filter the templates',
+    isArray: true,
+    example: [Specialization.CTI_RO, Specialization.CTI_ENG],
+    enum: [
+      Specialization.CTI_RO,
+      Specialization.CTI_ENG,
+      Specialization.ETC_ENG,
+      Specialization.ETC_RO,
+      Specialization.IS,
+      Specialization.INFO,
+    ],
+  })
+  async getTemplates(
+    @Query('specializations') specializations?: Specialization[],
+  ): Promise<Template[]> {
+    let parsedSpecializations: Specialization[];
+
+    if (specializations) {
+      parsedSpecializations = Array.isArray(specializations)
+        ? specializations
+        : [specializations];
+
+      parsedSpecializations.forEach((specialization) => {
+        if (!Object.values(Specialization).includes(specialization)) {
+          throw new BadRequestException(
+            `Invalid specialization: ${specialization}`,
+          );
+        }
+      });
+    }
+
+    return this.templatesService.findTemplates(parsedSpecializations);
+  }
+
   @Get(':id')
   async getTemplate(@Param('id') id: number) {
     return await this.templatesService.getTemplateById(id);
@@ -190,12 +228,9 @@ export class TemplatesController {
     await this.templatesService.deleteTemplate(id);
   }
 
-  @Post('fill')
-  @ApiConsumes('application/json')
-  @ApiBody({type: CreateResponseDto})
-  async fillTemplate(@Body() data: CreateResponseDto) {
-    const filePath = await this.templatesService.fillTemplate(data);
-    return {message: 'Template filled successfully', filePath};
+  @Get('fields/:templateId')
+  async getFieldsByTemplateId(@Param('templateId') templateId: number) {
+    return this.templatesService.findFieldsByTemplateId(templateId);
   }
 
   @Get('download/:filename')
@@ -206,45 +241,33 @@ export class TemplatesController {
     return res.download(path.resolve(__dirname, `../../uploads/${filename}`));
   }
 
-  @Get()
-  @ApiQuery({
-    name: 'specializations',
-    required: false,
-    description: 'Optional specializations to filter the templates',
-    isArray: true,
-    example: [Specialization.CTI_RO, Specialization.CTI_ENG],
-    enum: [
-      Specialization.CTI_RO,
-      Specialization.CTI_ENG,
-      Specialization.ETC_ENG,
-      Specialization.ETC_RO,
-      Specialization.IS,
-      Specialization.INFO,
-    ],
-  })
-  async getTemplates(
-    @Query('specializations') specializations?: Specialization[],
-  ): Promise<Template[]> {
-    let parsedSpecializations: Specialization[];
-
-    if (specializations) {
-      parsedSpecializations = Array.isArray(specializations)
-        ? specializations
-        : [specializations];
-
-      parsedSpecializations.forEach((specialization) => {
-        if (!Object.values(Specialization).includes(specialization)) {
-          throw new BadRequestException(
-            `Invalid specialization: ${specialization}`,
-          );
-        }
-      });
-    }
-
-    return this.templatesService.findTemplates(parsedSpecializations);
+  @Post('fill')
+  @ApiConsumes('application/json')
+  @ApiBody({type: CreateResponseDto})
+  async fillTemplate(@Body() data: CreateResponseDto) {
+    return await this.templatesService.fillTemplate(data);
   }
 
-  @Get('student-responses/:studentId')
+  @Get('student-responses/:id')
+  async getStudentResponse(@Param('id') id: number) {
+    return await this.templatesService.getStudentResponseById(id);
+  }
+
+  @Put('student-responses/:id')
+  @ApiBody({type: StudentResponse})
+  async updateStudentResponse(
+    @Param('id') id: number,
+    @Body() updateData: Partial<StudentResponse>,
+  ) {
+    return await this.templatesService.updateStudentResponse(id, updateData);
+  }
+
+  @Delete('student-responses/:id')
+  async deleteStudentResponse(@Param('id') id: number) {
+    await this.templatesService.deleteStudentResponse(id);
+  }
+
+  @Get('student-responses/by-student-id/:studentId')
   async getResponsesByStudentId(
     @Param('studentId') studentId: number,
   ): Promise<StudentResponse[]> {
@@ -256,11 +279,6 @@ export class TemplatesController {
       );
     }
     return responses;
-  }
-
-  @Get('fields/:templateId')
-  async getFieldsByTemplateId(@Param('templateId') templateId: number) {
-    return this.templatesService.findFieldsByTemplateId(templateId);
   }
 
   @Get('student-responses/with-user-details/all')

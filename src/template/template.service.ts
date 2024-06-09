@@ -69,6 +69,12 @@ export class TemplatesService {
     });
   }
 
+  async getStudentResponseById(id: number): Promise<StudentResponse> {
+    return this.responseRepository.findOne({
+      where: {id: id},
+    });
+  }
+
   async updateTemplate(
     id: number,
     updateData: Partial<Template>,
@@ -105,6 +111,28 @@ export class TemplatesService {
     return this.templateRepository.save(template);
   }
 
+  async updateStudentResponse(
+    id: number,
+    updateData: Partial<StudentResponse>,
+  ) {
+    const studentResponse = await this.responseRepository.findOne({
+      where: {id: id},
+      relations: ['template'],
+    });
+    if (!studentResponse) {
+      throw new NotFoundException(`Student response with ID ${id} not found`);
+    }
+
+    if (updateData.responses) {
+      studentResponse.responses = updateData.responses;
+    }
+
+    studentResponse.status = ResponseStatus.SENT;
+
+    studentResponse.responseDate = new Date();
+    return this.responseRepository.save(studentResponse);
+  }
+
   async deleteTemplate(id: number): Promise<void> {
     const template = await this.templateRepository.findOne({
       where: {id},
@@ -125,7 +153,15 @@ export class TemplatesService {
     }
   }
 
-  async fillTemplate(data: CreateResponseDto): Promise<string> {
+  async deleteStudentResponse(id: number): Promise<void> {
+    const result = await this.responseRepository.delete(id);
+
+    if (result.affected === 0) {
+      throw new NotFoundException(`Student response with ID ${id} not found`);
+    }
+  }
+
+  async fillTemplate(data: CreateResponseDto) {
     const template = await this.templateRepository.findOne({
       where: {id: data.templateId},
     });
@@ -172,7 +208,7 @@ export class TemplatesService {
     response.responseDate = new Date();
     await this.responseRepository.save(response);
 
-    return outputPath;
+    return response;
   }
 
   async findTemplates(specializations?: Specialization[]): Promise<Template[]> {
