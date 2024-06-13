@@ -1,7 +1,7 @@
 import {Column, Entity, PrimaryGeneratedColumn} from 'typeorm';
-import {UserRole} from '../dto/user-role.dto';
 import {Specialization} from '../../shared/spec.enum';
 import {Faculty} from '../../shared/faculty.enum';
+import {UserRole} from '../../shared/user-role.enum';
 
 @Entity()
 export class User {

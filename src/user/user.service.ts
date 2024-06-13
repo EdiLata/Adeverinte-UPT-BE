@@ -11,8 +11,8 @@ import {validate} from 'class-validator';
 import {JwtService} from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import {LoggerService} from '../logger/logger.service';
-import {UserRole} from './dto/user-role.dto';
 import {UserRegisterDto} from './dto/user-register.dto';
+import {UserRole} from '../shared/user-role.enum';
 
 @Injectable()
 export class UserService {

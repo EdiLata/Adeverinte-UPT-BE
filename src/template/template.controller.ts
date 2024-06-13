@@ -30,12 +30,11 @@ import {multerConfig} from '../multer.config';
 import * as path from 'path';
 import {Response} from 'express';
 import {Template} from './entities/template.entity';
-import {
-  ResponseStatus,
-  StudentResponse,
-} from './entities/student-response.entity';
+import {StudentResponse} from './entities/student-response.entity';
 import {ChangeStatusDto} from './dto/change-status.dto';
 import {Specialization} from '../shared/spec.enum';
+import {Faculty} from '../shared/faculty.enum';
+import {ResponseStatus} from '../shared/response-status.enum';
 
 @ApiTags('Templates')
 @Controller('templates')
@@ -288,10 +287,98 @@ export class TemplatesController {
     required: false,
     description: 'Optional status to filter the responses',
   })
+  @ApiQuery({
+    name: 'faculties',
+    example: [Faculty.AC, Faculty.ETCTI],
+    enum: [Faculty.AC],
+    isArray: true,
+    required: false,
+    description: 'Optional list of faculties to filter the responses',
+  })
+  @ApiQuery({
+    name: 'specializations',
+    example: [Specialization.CTI_RO, Specialization.CTI_ENG],
+    enum: [
+      Specialization.CTI_RO,
+      Specialization.CTI_ENG,
+      Specialization.ETC_ENG,
+      Specialization.ETC_RO,
+      Specialization.IS,
+      Specialization.INFO,
+    ],
+    isArray: true,
+    required: false,
+    description: 'Optional list of specializations to filter the templates',
+  })
+  @ApiQuery({
+    name: 'years',
+    type: Number,
+    isArray: true,
+    required: false,
+    description: 'Optional list of years to filter the responses',
+  })
+  @ApiQuery({
+    name: 'page',
+    type: Number,
+    required: false,
+    description: 'Optional page number for pagination',
+  })
+  @ApiQuery({
+    name: 'limit',
+    type: Number,
+    required: false,
+    description: 'Optional limit of items per page for pagination',
+  })
   async getAllResponsesWithUserDetails(
     @Query('status') status?: ResponseStatus,
+    @Query('faculties') faculties?: Faculty[],
+    @Query('specializations') specializations?: Specialization[],
+    @Query('years') years?: number[],
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
   ) {
-    return await this.templatesService.findAllResponsesWithUserDetails(status);
+    let parsedSpecializations: Specialization[];
+
+    if (specializations) {
+      parsedSpecializations = Array.isArray(specializations)
+        ? specializations
+        : [specializations];
+
+      parsedSpecializations.forEach((specialization) => {
+        if (!Object.values(Specialization).includes(specialization)) {
+          throw new BadRequestException(
+            `Invalid specialization: ${specialization}`,
+          );
+        }
+      });
+    }
+
+    let parsedFaculties: Faculty[];
+
+    if (faculties) {
+      parsedFaculties = Array.isArray(faculties) ? faculties : [faculties];
+
+      parsedFaculties.forEach((faculty) => {
+        if (!Object.values(Faculty).includes(faculty)) {
+          throw new BadRequestException(`Invalid faculty: ${faculty}`);
+        }
+      });
+    }
+
+    let parsedYears: number[];
+
+    if (years) {
+      parsedYears = Array.isArray(years) ? years : [years];
+    }
+
+    return await this.templatesService.findAllResponsesWithUserDetails({
+      status,
+      faculties: parsedFaculties,
+      specializations: parsedSpecializations,
+      years: parsedYears,
+      page,
+      limit,
+    });
   }
 
   @Patch(':responseId/status')

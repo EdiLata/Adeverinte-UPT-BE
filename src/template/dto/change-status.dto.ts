@@ -1,6 +1,6 @@
 import {ApiProperty} from '@nestjs/swagger';
 import {IsEnum} from 'class-validator';
-import {ResponseStatus} from '../entities/student-response.entity';
+import {ResponseStatus} from '../../shared/response-status.enum';
 
 export class ChangeStatusDto {
   @ApiProperty({

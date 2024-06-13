@@ -3,10 +3,7 @@ import {InjectRepository} from '@nestjs/typeorm';
 import {Repository} from 'typeorm';
 import {Template} from './entities/template.entity';
 import {Field} from './entities/field.entity';
-import {
-  ResponseStatus,
-  StudentResponse,
-} from './entities/student-response.entity';
+import {StudentResponse} from './entities/student-response.entity';
 import {CreateTemplateDto} from './dto/create-template.dto';
 import {CreateResponseDto} from './dto/create-response.dto';
 import PizZip from 'pizzip';
@@ -17,6 +14,17 @@ import {User} from '../user/entities/user.entity';
 import {ChangeStatusDto} from './dto/change-status.dto';
 import * as mammoth from 'mammoth';
 import {Specialization} from '../shared/spec.enum';
+import {Faculty} from '../shared/faculty.enum';
+import {ResponseStatus} from '../shared/response-status.enum';
+
+interface FilterOptions {
+  status?: ResponseStatus;
+  faculties?: Faculty[];
+  specializations?: Specialization[];
+  years?: number[];
+  page?: number;
+  limit?: number;
+}
 
 @Injectable()
 export class TemplatesService {
@@ -117,19 +125,47 @@ export class TemplatesService {
   ) {
     const studentResponse = await this.responseRepository.findOne({
       where: {id: id},
-      relations: ['template'],
+      relations: ['template', 'student'],
     });
     if (!studentResponse) {
       throw new NotFoundException(`Student response with ID ${id} not found`);
     }
 
+    const content = fs.readFileSync(
+      path.resolve(__dirname, '../../', studentResponse.template.filePath),
+      'binary',
+    );
+    const zip = new PizZip(content);
+    const doc = new Docxtemplater(zip, {paragraphLoop: true, linebreaks: true});
+
+    try {
+      if (updateData.responses) {
+        doc.render(updateData.responses);
+      }
+    } catch (error) {
+      console.error('Error rendering document:', error);
+      throw error;
+    }
+
+    const buf = doc.getZip().generate({type: 'nodebuffer'});
+
+    const outputPath = path.resolve(
+      __dirname,
+      '../../uploads',
+      `filled-${Date.now()}.docx`,
+    );
+    fs.writeFileSync(outputPath, buf);
+
     if (updateData.responses) {
       studentResponse.responses = updateData.responses;
     }
 
+    studentResponse.filePath = outputPath;
+
     studentResponse.status = ResponseStatus.SENT;
 
     studentResponse.responseDate = new Date();
+
     return this.responseRepository.save(studentResponse);
   }
 
@@ -242,17 +278,43 @@ export class TemplatesService {
     });
   }
 
-  async findAllResponsesWithUserDetails(
-    status?: ResponseStatus,
-  ): Promise<any[]> {
+  async findAllResponsesWithUserDetails({
+    status,
+    faculties,
+    specializations,
+    years,
+    page,
+    limit,
+  }: FilterOptions): Promise<any[]> {
     let query = this.responseRepository
       .createQueryBuilder('response')
       .leftJoinAndSelect('response.template', 'template')
-      .leftJoinAndSelect('response.student', 'user');
+      .leftJoinAndSelect('response.student', 'student');
 
     if (status) {
-      query = query.where('response.status = :status', {status});
+      query = query.andWhere('response.status = :status', {status});
     }
+
+    if (faculties && faculties.length > 0) {
+      query = query.andWhere('student.faculty IN (:...faculties)', {faculties});
+    }
+
+    if (specializations && specializations.length > 0) {
+      query = query.andWhere(
+        'student.specialization IN (:...specializations)',
+        {
+          specializations,
+        },
+      );
+    }
+
+    if (years && years.length > 0) {
+      query = query.andWhere('student.year IN (:...years)', {
+        years,
+      });
+    }
+
+    query = query.skip((page - 1) * limit).take(limit);
 
     return await query.getMany();
   }

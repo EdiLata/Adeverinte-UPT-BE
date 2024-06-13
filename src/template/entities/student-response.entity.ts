@@ -1,12 +1,7 @@
 import {Entity, Column, PrimaryGeneratedColumn, ManyToOne} from 'typeorm';
 import {Template} from './template.entity';
 import {User} from '../../user/entities/user.entity';
-
-export enum ResponseStatus {
-  SENT = 'Trimis',
-  APPROVED = 'Aprobat',
-  DECLINED = 'Respins',
-}
+import {ResponseStatus} from '../../shared/response-status.enum';
 
 @Entity()
 export class StudentResponse {
