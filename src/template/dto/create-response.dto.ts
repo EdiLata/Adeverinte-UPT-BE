@@ -1,4 +1,10 @@
-import {IsNumber, IsObject, ValidateNested, IsNotEmpty} from 'class-validator';
+import {
+  IsNumber,
+  IsObject,
+  ValidateNested,
+  IsNotEmpty,
+  IsString,
+} from 'class-validator';
 import {ApiProperty} from '@nestjs/swagger';
 import {Type} from 'class-transformer';
 
@@ -18,6 +24,14 @@ export class CreateResponseDto {
   @IsNumber()
   @IsNotEmpty()
   studentId: number;
+
+  @ApiProperty({
+    description: 'The reason why the student is submitting the response',
+    example: 'work',
+  })
+  @IsString()
+  @IsNotEmpty()
+  reason: string;
 
   @ApiProperty({
     description:

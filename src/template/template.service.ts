@@ -16,6 +16,7 @@ import * as mammoth from 'mammoth';
 import {Specialization} from '../shared/spec.enum';
 import {Faculty} from '../shared/faculty.enum';
 import {ResponseStatus} from '../shared/response-status.enum';
+import {QueryApprovedStudentsResponsesDto} from './dto/query-approved-students-responses.dto';
 
 interface FilterOptions {
   status?: ResponseStatus;
@@ -71,16 +72,28 @@ export class TemplatesService {
   }
 
   async getTemplateById(id: number): Promise<Template> {
-    return this.templateRepository.findOne({
+    const template = await this.templateRepository.findOne({
       where: {id: id},
       relations: {fields: true},
     });
+
+    if (!template) {
+      throw new NotFoundException(`Template with ID ${id} not found`);
+    }
+
+    return template;
   }
 
   async getStudentResponseById(id: number): Promise<StudentResponse> {
-    return this.responseRepository.findOne({
+    const studentResponse = await this.responseRepository.findOne({
       where: {id: id},
     });
+
+    if (!studentResponse) {
+      throw new NotFoundException(`Student response with ID ${id} not found`);
+    }
+
+    return studentResponse;
   }
 
   async updateTemplate(
@@ -158,13 +171,18 @@ export class TemplatesService {
 
     if (updateData.responses) {
       studentResponse.responses = updateData.responses;
+      if (studentResponse.responses.motiv) {
+        studentResponse.reason = studentResponse.responses.motiv;
+      }
+    }
+
+    if (updateData.reason) {
+      studentResponse.reason = updateData.reason;
     }
 
     studentResponse.filePath = outputPath;
 
     studentResponse.status = ResponseStatus.SENT;
-
-    studentResponse.responseDate = new Date();
 
     return this.responseRepository.save(studentResponse);
   }
@@ -202,14 +220,18 @@ export class TemplatesService {
       where: {id: data.templateId},
     });
     if (!template) {
-      throw new Error('Template not found');
+      throw new NotFoundException(
+        `Template with ID ${data.templateId} not found`,
+      );
     }
 
     const student = await this.userRepository.findOne({
       where: {id: data.studentId},
     });
     if (!student) {
-      throw new Error('Student not found');
+      throw new NotFoundException(
+        `Student with ID ${data.studentId} not found`,
+      );
     }
 
     const content = fs.readFileSync(
@@ -239,8 +261,12 @@ export class TemplatesService {
     response.template = template;
     response.student = student;
     response.responses = data.responses;
+    if (response.responses.motiv) {
+      response.responses.motiv = data.reason;
+    }
     response.filePath = outputPath;
     response.status = ResponseStatus.SENT;
+    response.reason = data.reason;
     response.responseDate = new Date();
     await this.responseRepository.save(response);
 
@@ -273,9 +299,41 @@ export class TemplatesService {
   }
 
   async findFieldsByTemplateId(templateId: number): Promise<Field[]> {
+    const template = await this.templateRepository.findOne({
+      where: {id: templateId},
+    });
+    if (!template) {
+      throw new NotFoundException(`Template with ID ${templateId} not found`);
+    }
+
     return this.fieldRepository.find({
       where: {template: {id: templateId}},
     });
+  }
+
+  async findAllApprovedResponsesWithinRangeWithUserDetails(
+    queryDto: QueryApprovedStudentsResponsesDto,
+  ): Promise<any[]> {
+    const {start, end} = queryDto;
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    endDate.setHours(23, 59, 59, 999);
+
+    const isoStartDate = toLocalISOString(startDate);
+    const isoEndDate = toLocalISOString(endDate);
+
+    const query = this.responseRepository
+      .createQueryBuilder('response')
+      .leftJoinAndSelect('response.template', 'template')
+      .leftJoinAndSelect('response.student', 'student')
+      .where('response.status = :status', {status: ResponseStatus.APPROVED})
+      .andWhere('response.responseDate BETWEEN :startDate AND :endDate', {
+        startDate: isoStartDate,
+        endDate: isoEndDate,
+      });
+
+    return await query.getMany();
   }
 
   async findAllResponsesWithUserDetails({
@@ -285,7 +343,7 @@ export class TemplatesService {
     years,
     page,
     limit,
-  }: FilterOptions): Promise<any[]> {
+  }: FilterOptions) {
     let query = this.responseRepository
       .createQueryBuilder('response')
       .leftJoinAndSelect('response.template', 'template')
@@ -316,7 +374,9 @@ export class TemplatesService {
 
     query = query.skip((page - 1) * limit).take(limit);
 
-    return await query.getMany();
+    const [items, totalItems] = await query.getManyAndCount();
+
+    return {items, totalItems};
   }
 
   async updateResponseStatus(
@@ -337,9 +397,36 @@ export class TemplatesService {
   }
 
   async convertDocToHtml(filename: string): Promise<string> {
-    const filePath = path.join(__dirname, '..', '..', 'uploads', `${filename}`);
-    const buffer = fs.readFileSync(filePath);
-    const result = await mammoth.convertToHtml({buffer: buffer});
-    return result.value;
+    try {
+      const filePath = path.join(
+        __dirname,
+        '..',
+        '..',
+        'uploads',
+        `${filename}`,
+      );
+
+      if (!fs.existsSync(filePath)) {
+        throw new NotFoundException(`File with name ${filename} not found`);
+      }
+
+      const buffer = fs.readFileSync(filePath);
+      const result = await mammoth.convertToHtml({buffer: buffer});
+      return result.value;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      } else {
+        throw new NotFoundException(
+          'An error occurred while converting the document to HTML',
+        );
+      }
+    }
   }
+}
+
+function toLocalISOString(date: Date): string {
+  const offset = date.getTimezoneOffset();
+  const adjustedDate = new Date(date.getTime() - offset * 60 * 1000);
+  return adjustedDate.toISOString().split('Z')[0];
 }

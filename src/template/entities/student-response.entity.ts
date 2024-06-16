@@ -23,6 +23,11 @@ export class StudentResponse {
   filePath: string;
 
   @Column({
+    nullable: true,
+  })
+  reason: string;
+
+  @Column({
     type: 'enum',
     enum: ResponseStatus,
     default: ResponseStatus.SENT,

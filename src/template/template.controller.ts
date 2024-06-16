@@ -1,19 +1,18 @@
 import {
+  BadRequestException,
+  Body,
   Controller,
-  Post,
+  Delete,
   Get,
   Param,
-  Body,
-  UseInterceptors,
-  UploadedFile,
-  Res,
-  Put,
-  Delete,
-  NotFoundException,
-  Query,
-  Patch,
   ParseIntPipe,
-  BadRequestException,
+  Patch,
+  Post,
+  Put,
+  Query,
+  Res,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import {FileInterceptor} from '@nestjs/platform-express';
 import {TemplatesService} from './template.service';
@@ -35,6 +34,7 @@ import {ChangeStatusDto} from './dto/change-status.dto';
 import {Specialization} from '../shared/spec.enum';
 import {Faculty} from '../shared/faculty.enum';
 import {ResponseStatus} from '../shared/response-status.enum';
+import {QueryApprovedStudentsResponsesDto} from './dto/query-approved-students-responses.dto';
 
 @ApiTags('Templates')
 @Controller('templates')
@@ -241,7 +241,6 @@ export class TemplatesController {
   }
 
   @Post('fill')
-  @ApiConsumes('application/json')
   @ApiBody({type: CreateResponseDto})
   async fillTemplate(@Body() data: CreateResponseDto) {
     return await this.templatesService.fillTemplate(data);
@@ -270,17 +269,10 @@ export class TemplatesController {
   async getResponsesByStudentId(
     @Param('studentId') studentId: number,
   ): Promise<StudentResponse[]> {
-    const responses =
-      await this.templatesService.findResponsesByStudentId(studentId);
-    if (!responses || responses.length === 0) {
-      throw new NotFoundException(
-        `No responses found for student ID ${studentId}`,
-      );
-    }
-    return responses;
+    return await this.templatesService.findResponsesByStudentId(studentId);
   }
 
-  @Get('student-responses/with-user-details/all')
+  @Get('students-responses/with-user-details/all')
   @ApiQuery({
     name: 'status',
     enum: ResponseStatus,
@@ -381,6 +373,15 @@ export class TemplatesController {
     });
   }
 
+  @Get('students-responses/with-user-details/approved')
+  async getApprovedResponses(
+    @Query() queryDto: QueryApprovedStudentsResponsesDto,
+  ) {
+    return this.templatesService.findAllApprovedResponsesWithinRangeWithUserDetails(
+      queryDto,
+    );
+  }
+
   @Patch(':responseId/status')
   @ApiParam({
     name: 'responseId',
@@ -391,11 +392,10 @@ export class TemplatesController {
   async updateResponseStatus(
     @Param('responseId', ParseIntPipe) responseId: number,
     @Body() newStatus: ChangeStatusDto,
-  ): Promise<ResponseStatus> {
-    const updatedResponse = await this.templatesService.updateResponseStatus(
+  ): Promise<StudentResponse> {
+    return await this.templatesService.updateResponseStatus(
       responseId,
       newStatus,
     );
-    return updatedResponse.status;
   }
 }

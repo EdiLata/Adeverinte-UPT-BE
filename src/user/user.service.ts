@@ -75,6 +75,7 @@ export class UserService {
               id: userDetails.id,
               email: user.email,
               role: userDetails.role,
+              specialization: userDetails.specialization,
             }),
           },
         };
