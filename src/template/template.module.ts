@@ -14,6 +14,7 @@ import {JwtModule} from '@nestjs/jwt';
 import * as fs from 'fs';
 import {ServeStaticModule} from '@nestjs/serve-static';
 import {join} from 'path';
+import {JwtStrategy} from '../strategy/jwt.strategy';
 
 @Module({
   imports: [
@@ -29,14 +30,14 @@ import {join} from 'path';
         return {
           privateKey: fs.readFileSync('keys/private-key.pem', 'utf8'),
           publicKey: fs.readFileSync('keys/public-key.pem', 'utf8'),
-          signOptions: {expiresIn: '30m', algorithm: 'RS256'},
+          signOptions: {algorithm: 'RS256'},
         };
       },
     }),
     TypeOrmModule.forFeature([Template, Field, StudentResponse, User]),
   ],
   controllers: [TemplatesController],
-  providers: [TemplatesService, UserService],
+  providers: [JwtStrategy, TemplatesService, UserService],
   exports: [TemplatesService],
 })
 export class TemplateModule {}

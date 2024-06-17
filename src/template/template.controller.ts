@@ -12,6 +12,7 @@ import {
   Query,
   Res,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import {FileInterceptor} from '@nestjs/platform-express';
@@ -19,6 +20,7 @@ import {TemplatesService} from './template.service';
 import {CreateTemplateDto} from './dto/create-template.dto';
 import {CreateResponseDto} from './dto/create-response.dto';
 import {
+  ApiBearerAuth,
   ApiBody,
   ApiConsumes,
   ApiParam,
@@ -35,12 +37,15 @@ import {Specialization} from '../shared/spec.enum';
 import {Faculty} from '../shared/faculty.enum';
 import {ResponseStatus} from '../shared/response-status.enum';
 import {QueryApprovedStudentsResponsesDto} from './dto/query-approved-students-responses.dto';
+import {JwtAuthGuard} from '../strategy/jwt-auth.guard';
 
 @ApiTags('Templates')
 @Controller('templates')
 export class TemplatesController {
   constructor(private readonly templatesService: TemplatesService) {}
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @Get('get-doc-html/:filename')
   async getDocHtml(
     @Param('filename') filename: string,
@@ -49,6 +54,8 @@ export class TemplatesController {
     return {html};
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @Post('upload')
   @UseInterceptors(FileInterceptor('file', multerConfig))
   @ApiConsumes('multipart/form-data')
@@ -63,13 +70,13 @@ export class TemplatesController {
         },
         name: {
           type: 'string',
-          example: 'Annual Report',
+          example: 'Adeverință Medicală',
           description: 'Name of the template',
         },
         fields: {
           type: 'array',
           items: {type: 'string'},
-          example: ['Name', 'Date', 'Signature'],
+          example: ['nume', 'prenume', 'faculate'],
           description: 'List of fields in the template',
         },
         specializations: {
@@ -111,6 +118,8 @@ export class TemplatesController {
     return this.templatesService.createTemplate(file, createTemplateDto);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @Get()
   @ApiQuery({
     name: 'specializations',
@@ -149,11 +158,15 @@ export class TemplatesController {
     return this.templatesService.findTemplates(parsedSpecializations);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @Get(':id')
   async getTemplate(@Param('id') id: number) {
     return await this.templatesService.getTemplateById(id);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @Put(':id')
   @UseInterceptors(FileInterceptor('file', multerConfig))
   @ApiConsumes('multipart/form-data')
@@ -168,14 +181,14 @@ export class TemplatesController {
         },
         name: {
           type: 'string',
-          example: 'Updated Annual Report',
+          example: 'Updated Adeverință Medicală',
           description: 'Name of the template',
           nullable: true,
         },
         fields: {
           type: 'array',
           items: {type: 'string'},
-          example: ['Name', 'Date', 'Signature'],
+          example: ['nume', 'prenume', 'faculate'],
           description: 'List of fields in the template',
           nullable: true,
         },
@@ -222,16 +235,22 @@ export class TemplatesController {
     return await this.templatesService.updateTemplate(id, updateData, file);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @Delete(':id')
   async deleteTemplate(@Param('id') id: number) {
     await this.templatesService.deleteTemplate(id);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @Get('fields/:templateId')
   async getFieldsByTemplateId(@Param('templateId') templateId: number) {
     return this.templatesService.findFieldsByTemplateId(templateId);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @Get('download/:filename')
   async downloadFile(
     @Param('filename') filename: string,
@@ -240,17 +259,23 @@ export class TemplatesController {
     return res.download(path.resolve(__dirname, `../../uploads/${filename}`));
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @Post('fill')
   @ApiBody({type: CreateResponseDto})
   async fillTemplate(@Body() data: CreateResponseDto) {
     return await this.templatesService.fillTemplate(data);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @Get('student-responses/:id')
   async getStudentResponse(@Param('id') id: number) {
     return await this.templatesService.getStudentResponseById(id);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @Put('student-responses/:id')
   @ApiBody({type: StudentResponse})
   async updateStudentResponse(
@@ -260,11 +285,15 @@ export class TemplatesController {
     return await this.templatesService.updateStudentResponse(id, updateData);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @Delete('student-responses/:id')
   async deleteStudentResponse(@Param('id') id: number) {
     await this.templatesService.deleteStudentResponse(id);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @Get('student-responses/by-student-id/:studentId')
   async getResponsesByStudentId(
     @Param('studentId') studentId: number,
@@ -272,6 +301,8 @@ export class TemplatesController {
     return await this.templatesService.findResponsesByStudentId(studentId);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @Get('students-responses/with-user-details/all')
   @ApiQuery({
     name: 'status',
@@ -373,6 +404,8 @@ export class TemplatesController {
     });
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @Get('students-responses/with-user-details/approved')
   async getApprovedResponses(
     @Query() queryDto: QueryApprovedStudentsResponsesDto,
@@ -382,6 +415,8 @@ export class TemplatesController {
     );
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @Patch(':responseId/status')
   @ApiParam({
     name: 'responseId',

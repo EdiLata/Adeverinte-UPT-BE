@@ -27,7 +27,7 @@ export class CreateResponseDto {
 
   @ApiProperty({
     description: 'The reason why the student is submitting the response',
-    example: 'work',
+    example: 'locul de muncă',
   })
   @IsString()
   @IsNotEmpty()

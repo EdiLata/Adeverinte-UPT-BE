@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -22,7 +23,7 @@ export class UserService {
     @InjectRepository(User) private usersRepository: Repository<User>,
   ) {}
 
-  async updateUserRole(email: string, newRole: UserRole): Promise<User> {
+  async updateUserRole(email: string, newRole: UserRole) {
     const user = await this.usersRepository.findOne({
       where: {email},
     });
@@ -35,13 +36,15 @@ export class UserService {
       user.role = newRole;
       await this.usersRepository.save(user);
     } else {
-      throw new Error(`Role '${newRole}' already exists for this user.`);
+      throw new ConflictException(
+        `Role '${newRole}' already exists for this user.`,
+      );
     }
 
     return user;
   }
 
-  async login(user: UserLoginDto): Promise<Record<string, any>> {
+  async login(user: UserLoginDto) {
     let isOk = false;
 
     const userDto = new UserLoginDto();
@@ -87,7 +90,7 @@ export class UserService {
     }
   }
 
-  async createUser(body: UserRegisterDto): Promise<Record<string, any>> {
+  async createUser(body: UserRegisterDto) {
     let isOk = false;
 
     const userDto = new UserRegisterDto();
@@ -121,7 +124,7 @@ export class UserService {
     }
   }
 
-  async resetPassword(email: string, newPassword: string): Promise<void> {
+  async resetPassword(email: string, newPassword: string) {
     const user = await this.usersRepository.findOne({where: {email}});
 
     if (!user) {
@@ -136,6 +139,6 @@ export class UserService {
     }
 
     user.password = bcrypt.hashSync(newPassword, 10);
-    await this.usersRepository.save(user);
+    return await this.usersRepository.save(user);
   }
 }
