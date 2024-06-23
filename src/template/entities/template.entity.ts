@@ -31,6 +31,10 @@ export class Template {
   })
   updateDate: Date;
 
-  @Column('enum', {enum: Specialization, array: true, nullable: true})
+  @Column('enum', {
+    enum: Specialization,
+    array: true,
+    nullable: true,
+  })
   specializations: Specialization[];
 }

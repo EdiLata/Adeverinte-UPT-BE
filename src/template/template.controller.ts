@@ -5,7 +5,6 @@ import {
   Delete,
   Get,
   Param,
-  ParseIntPipe,
   Patch,
   Post,
   Put,
@@ -137,7 +136,8 @@ export class TemplatesController {
     ],
   })
   async getTemplates(
-    @Query('specializations') specializations?: Specialization[],
+    @Query('specializations')
+    specializations?: Specialization[],
   ): Promise<Template[]> {
     let parsedSpecializations: Specialization[];
 
@@ -355,7 +355,8 @@ export class TemplatesController {
   async getAllResponsesWithUserDetails(
     @Query('status') status?: ResponseStatus,
     @Query('faculties') faculties?: Faculty[],
-    @Query('specializations') specializations?: Specialization[],
+    @Query('specializations')
+    specializations?: Specialization[],
     @Query('years') years?: number[],
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
@@ -425,7 +426,7 @@ export class TemplatesController {
   })
   @ApiBody({type: ChangeStatusDto})
   async updateResponseStatus(
-    @Param('responseId', ParseIntPipe) responseId: number,
+    @Param('responseId') responseId: number,
     @Body() newStatus: ChangeStatusDto,
   ): Promise<StudentResponse> {
     return await this.templatesService.updateResponseStatus(

@@ -18,8 +18,6 @@ async function bootstrap() {
     .setTitle('Adeverinte UPT API')
     .setVersion('1')
     .addServer('http://localhost:3000/', 'Local environment')
-    .addServer('https://staging.yourapi.com/', 'Staging')
-    .addServer('https://production.yourapi.com/', 'Production')
     .addBearerAuth(
       {
         type: 'http',

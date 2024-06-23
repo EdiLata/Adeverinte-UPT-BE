@@ -37,7 +37,6 @@ export class UserController {
   @ApiBearerAuth('access-token')
   @Post('change-role')
   @HttpCode(HttpStatus.OK)
-  @UsePipes(new ValidationPipe({whitelist: true, forbidNonWhitelisted: true}))
   async updateUserRoles(@Body() body: UserRoleDto): Promise<any> {
     return await this.userService.updateUserRole(body.email, body.role);
   }

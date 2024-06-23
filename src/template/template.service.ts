@@ -101,23 +101,21 @@ export class TemplatesService {
     updateData: Partial<Template>,
     file?: Express.Multer.File,
   ): Promise<Template> {
-    const template = await this.templateRepository.findOne({where: {id: id}});
+    const template = await this.templateRepository.findOne({
+      where: {id: id},
+    });
     if (!template) {
       throw new NotFoundException(`Template with ID ${id} not found`);
     }
-
     if (file) {
       template.filePath = file.path;
     }
-
     if (updateData.name) {
       template.name = updateData.name;
     }
-
     if (updateData.specializations) {
       template.specializations = updateData.specializations;
     }
-
     if (updateData.fields) {
       await this.fieldRepository.delete({template: {id}});
       for (const fieldName of updateData.fields) {
@@ -127,7 +125,6 @@ export class TemplatesService {
         await this.fieldRepository.save(field);
       }
     }
-
     template.updateDate = new Date();
     return this.templateRepository.save(template);
   }
@@ -149,7 +146,10 @@ export class TemplatesService {
       'binary',
     );
     const zip = new PizZip(content);
-    const doc = new Docxtemplater(zip, {paragraphLoop: true, linebreaks: true});
+    const doc = new Docxtemplater(zip, {
+      paragraphLoop: true,
+      linebreaks: true,
+    });
 
     try {
       if (updateData.responses) {
@@ -239,7 +239,10 @@ export class TemplatesService {
       'binary',
     );
     const zip = new PizZip(content);
-    const doc = new Docxtemplater(zip, {paragraphLoop: true, linebreaks: true});
+    const doc = new Docxtemplater(zip, {
+      paragraphLoop: true,
+      linebreaks: true,
+    });
 
     try {
       doc.render(data.responses);
@@ -327,7 +330,9 @@ export class TemplatesService {
       .createQueryBuilder('response')
       .leftJoinAndSelect('response.template', 'template')
       .leftJoinAndSelect('response.student', 'student')
-      .where('response.status = :status', {status: ResponseStatus.APPROVED})
+      .where('response.status = :status', {
+        status: ResponseStatus.APPROVED,
+      })
       .andWhere('response.responseDate BETWEEN :startDate AND :endDate', {
         startDate: isoStartDate,
         endDate: isoEndDate,
@@ -348,15 +353,14 @@ export class TemplatesService {
       .createQueryBuilder('response')
       .leftJoinAndSelect('response.template', 'template')
       .leftJoinAndSelect('response.student', 'student');
-
     if (status) {
-      query = query.andWhere('response.status = :status', {status});
+      query = query.andWhere('response.status = :status', {
+        status,
+      });
     }
-
     if (faculties && faculties.length > 0) {
       query = query.andWhere('student.faculty IN (:...faculties)', {faculties});
     }
-
     if (specializations && specializations.length > 0) {
       query = query.andWhere(
         'student.specialization IN (:...specializations)',
@@ -365,17 +369,13 @@ export class TemplatesService {
         },
       );
     }
-
     if (years && years.length > 0) {
       query = query.andWhere('student.year IN (:...years)', {
         years,
       });
     }
-
     query = query.skip((page - 1) * limit).take(limit);
-
     const [items, totalItems] = await query.getManyAndCount();
-
     return {items, totalItems};
   }
 
@@ -411,7 +411,9 @@ export class TemplatesService {
       }
 
       const buffer = fs.readFileSync(filePath);
-      const result = await mammoth.convertToHtml({buffer: buffer});
+      const result = await mammoth.convertToHtml({
+        buffer: buffer,
+      });
       return result.value;
     } catch (error) {
       if (error instanceof NotFoundException) {

@@ -20,7 +20,8 @@ export class UserService {
   constructor(
     private logger: LoggerService,
     private jwtService: JwtService,
-    @InjectRepository(User) private usersRepository: Repository<User>,
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
   ) {}
 
   async updateUserRole(email: string, newRole: UserRole) {
@@ -66,7 +67,10 @@ export class UserService {
         },
       });
       if (userDetails == null) {
-        return {status: 401, msg: {msg: 'Invalid credentials'}};
+        return {
+          status: 401,
+          msg: {msg: 'Invalid credentials'},
+        };
       }
 
       const isValid = bcrypt.compareSync(user.password, userDetails.password);
@@ -83,7 +87,10 @@ export class UserService {
           },
         };
       } else {
-        return {status: 401, msg: {msg: 'Invalid credentials'}};
+        return {
+          status: 401,
+          msg: {msg: 'Invalid credentials'},
+        };
       }
     } else {
       return {status: 400, msg: {msg: 'Invalid fields.'}};
@@ -115,17 +122,28 @@ export class UserService {
 
       await this.updateUserRole(userDto.email, UserRole.STUDENT);
       if (isOk) {
-        return {status: 201, content: {msg: `User created with success`}};
+        return {
+          status: 201,
+          content: {msg: `User created with success`},
+        };
       } else {
-        return {status: 400, content: {msg: 'User already exists'}};
+        return {
+          status: 400,
+          content: {msg: 'User already exists'},
+        };
       }
     } else {
-      return {status: 400, content: {msg: 'Invalid content'}};
+      return {
+        status: 400,
+        content: {msg: 'Invalid content'},
+      };
     }
   }
 
   async resetPassword(email: string, newPassword: string) {
-    const user = await this.usersRepository.findOne({where: {email}});
+    const user = await this.usersRepository.findOne({
+      where: {email},
+    });
 
     if (!user) {
       throw new NotFoundException(`No user found with the email ${email}`);

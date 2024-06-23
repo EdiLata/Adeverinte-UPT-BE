@@ -9,7 +9,10 @@ import {ApiProperty} from '@nestjs/swagger';
 import {Specialization} from '../../shared/spec.enum';
 
 export class CreateTemplateDto {
-  @ApiProperty({example: 'Annual Report', description: 'Name of the template'})
+  @ApiProperty({
+    example: 'Annual Report',
+    description: 'Name of the template',
+  })
   @IsString()
   @IsNotEmpty()
   name: string;
